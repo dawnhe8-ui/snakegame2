@@ -754,66 +754,6 @@
                 window.addEventListener('resize', () => this.resizeCanvas());
             }
 
-            // ==================== 移动端控制设置 ====================
-
-            // 设置移动端虚拟控制按钮
-            setupMobileControls() {
-                const upBtn = document.getElementById('upBtn');
-                const downBtn = document.getElementById('downBtn');
-                const leftBtn = document.getElementById('leftBtn');
-                const rightBtn = document.getElementById('rightBtn');
-
-                // 为每个按钮添加触摸和点击事件
-                this.addControlButtonEvents(upBtn, 0, -1);    // 向上
-                this.addControlButtonEvents(downBtn, 0, 1);   // 向下
-                this.addControlButtonEvents(leftBtn, -1, 0);  // 向左
-                this.addControlButtonEvents(rightBtn, 1, 0);  // 向右
-            }
-
-            // 为控制按钮添加事件监听器
-            addControlButtonEvents(button, dx, dy) {
-                // 防止默认行为和事件冒泡
-                const handleControl = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.handleVirtualButtonPress(dx, dy);
-                };
-
-                // 添加多种事件以确保兼容性
-                button.addEventListener('touchstart', handleControl, {passive: false});
-                button.addEventListener('click', handleControl);
-                button.addEventListener('mousedown', handleControl);
-            }
-
-            // 处理虚拟按钮按下
-            handleVirtualButtonPress(dx, dy) {
-                // 如果游戏未运行，开始游戏
-                if (!this.gameRunning) {
-                    this.soundManager.playClickSound();
-                    this.start();
-                    return;
-                }
-
-                // 如果游戏暂停，继续游戏
-                if (this.gamePaused) {
-                    this.soundManager.playClickSound();
-                    this.togglePause();
-                    return;
-                }
-
-                // 检查是否为有效方向（防止180度转向）
-                let validDirection = false;
-                if (dx === 0 && dy === -1 && this.dy !== 1) validDirection = true;  // 向上
-                if (dx === 0 && dy === 1 && this.dy !== -1) validDirection = true;  // 向下
-                if (dx === -1 && dy === 0 && this.dx !== 1) validDirection = true;  // 向左
-                if (dx === 1 && dy === 0 && this.dx !== -1) validDirection = true;  // 向右
-
-                if (validDirection) {
-                    this.nextDirection = {dx, dy};
-                    this.soundManager.playClickSound();
-                }
-            }
-
             // ==================== 输入处理方法 ====================
 
             // 处理键盘输入

@@ -330,6 +330,87 @@
             }
         }
 
+        /* 移动端虚拟控制按钮 */
+        .mobile-controls {
+            display: none;
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            user-select: none;
+        }
+
+        .control-btn {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: var(--btn);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            touch-action: manipulation;
+        }
+
+        .control-btn:hover {
+            background: var(--btn-hover);
+            transform: scale(1.05);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn.up {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .control-btn.down {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .control-btn.left {
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .control-btn.right {
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* 中心圆圈装饰 */
+        .control-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: var(--card);
+            border: 2px solid var(--line);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--muted);
+        }
+
         /* 减少动画偏好设置 */
         @media (prefers-reduced-motion: reduce) {
             * {
@@ -344,6 +425,13 @@
                 background: linear-gradient(135deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
             }
             body.auto-theme .game-container { background: var(--panel-bg); border-color: var(--panel-border); }
+        }
+
+        /* 移动端显示虚拟控制按钮 */
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: block;
+            }
         }
 
     </style>
@@ -410,12 +498,21 @@
             </div>
         </div>
 
+        <!-- 移动端虚拟控制按钮 -->
+        <div class="mobile-controls" id="mobileControls">
+            <button class="control-btn up" id="upBtn" aria-label="向上">↑</button>
+            <button class="control-btn down" id="downBtn" aria-label="向下">↓</button>
+            <button class="control-btn left" id="leftBtn" aria-label="向左">←</button>
+            <button class="control-btn right" id="rightBtn" aria-label="向右">→</button>
+            <div class="control-center">🎮</div>
+        </div>
+
         <div class="instructions">
             <button class="instructions-toggle" id="instructionsToggle">📖 使用说明</button>
             <div class="instructions-content" id="instructionsContent">
                 <h3>操作方式:</h3>
                 <p>• 桌面端: 方向键 ↑↓←→ 或 WASD 控制方向</p>
-                <p>• 移动端: 在屏幕上滑动控制方向</p>
+                <p>• 移动端: 滑动屏幕或点击虚拟按钮控制方向</p>
                 <p>• 空格键: 暂停/继续游戏</p>
 
                 <h3>游戏规则:</h3>
@@ -650,8 +747,71 @@
                     } catch {}
                 });
 
+                // 移动端虚拟控制按钮事件
+                this.setupMobileControls();
+
                 // 窗口大小变化事件
                 window.addEventListener('resize', () => this.resizeCanvas());
+            }
+
+            // ==================== 移动端控制设置 ====================
+
+            // 设置移动端虚拟控制按钮
+            setupMobileControls() {
+                const upBtn = document.getElementById('upBtn');
+                const downBtn = document.getElementById('downBtn');
+                const leftBtn = document.getElementById('leftBtn');
+                const rightBtn = document.getElementById('rightBtn');
+
+                // 为每个按钮添加触摸和点击事件
+                this.addControlButtonEvents(upBtn, 0, -1);    // 向上
+                this.addControlButtonEvents(downBtn, 0, 1);   // 向下
+                this.addControlButtonEvents(leftBtn, -1, 0);  // 向左
+                this.addControlButtonEvents(rightBtn, 1, 0);  // 向右
+            }
+
+            // 为控制按钮添加事件监听器
+            addControlButtonEvents(button, dx, dy) {
+                // 防止默认行为和事件冒泡
+                const handleControl = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.handleVirtualButtonPress(dx, dy);
+                };
+
+                // 添加多种事件以确保兼容性
+                button.addEventListener('touchstart', handleControl, {passive: false});
+                button.addEventListener('click', handleControl);
+                button.addEventListener('mousedown', handleControl);
+            }
+
+            // 处理虚拟按钮按下
+            handleVirtualButtonPress(dx, dy) {
+                // 如果游戏未运行，开始游戏
+                if (!this.gameRunning) {
+                    this.soundManager.playClickSound();
+                    this.start();
+                    return;
+                }
+
+                // 如果游戏暂停，继续游戏
+                if (this.gamePaused) {
+                    this.soundManager.playClickSound();
+                    this.togglePause();
+                    return;
+                }
+
+                // 检查是否为有效方向（防止180度转向）
+                let validDirection = false;
+                if (dx === 0 && dy === -1 && this.dy !== 1) validDirection = true;  // 向上
+                if (dx === 0 && dy === 1 && this.dy !== -1) validDirection = true;  // 向下
+                if (dx === -1 && dy === 0 && this.dx !== 1) validDirection = true;  // 向左
+                if (dx === 1 && dy === 0 && this.dx !== -1) validDirection = true;  // 向右
+
+                if (validDirection) {
+                    this.nextDirection = {dx, dy};
+                    this.soundManager.playClickSound();
+                }
             }
 
             // ==================== 输入处理方法 ====================
